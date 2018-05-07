@@ -1,0 +1,12 @@
+#!/bin/bash
+
+value=$(ssh nagios@$1 "cat /etc/*-release")
+
+if [[ $value = *"release"* ]]; then
+  value=$(echo "$value" | grep release | tail -n 1)
+  echo $value
+fi
+if [[ $value = *"PRETTY_NAME="* ]]; then
+  value=$(echo "$value" | grep PRETTY_NAME | tail -n 1 | cut -d"\"" -f2)
+  echo $value
+fi

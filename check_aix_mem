@@ -1,0 +1,55 @@
+#!/bin/bash
+
+Syntax()
+{
+   echo " "
+   echo "  Command Syntax: check_aix_mem [-H host] [-c val] [-w val]"
+   echo " "
+   exit 3;
+}
+
+if [[ $# == 0 ]]
+then
+  Syntax
+fi
+
+valw=0
+valc=0
+host=""
+
+while [[ $# > 0 ]]
+do
+   par=$1
+   case $par in
+     -c) shift
+         valc=$1;;
+     -w) shift
+         valw=$1;;
+     -H) shift
+         host=$1;;
+     -h) shift
+         Syntax
+         exit;;
+      *) shift;;
+   esac
+done
+
+output=$(ssh nagios@$host "vmstat -v")
+value_numperm=$(echo "$output" | grep numperm | awk '{print $1}'| sed s/\s+//g)
+value_inuse=$(echo "$output" | grep "percentage of memory" | sed s/\s+//g | awk '{print $1}')
+
+ok=0
+status="OK"
+
+if (( $value_inuse > $valw))
+then
+		ok=1
+		status="WARNING"
+fi
+if (( $value_inuse > $valc))
+then
+		ok=2
+		status="CRITICAL"
+fi
+
+echo "MEMORY $status :: MemUsed = $value_inuse% | MemUsed=$value_inuse%;$valw;$valc FScache=$value_numperm%"; exit $ok

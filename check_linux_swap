@@ -1,0 +1,62 @@
+#!/bin/bash
+
+Syntax()
+{
+   echo " "
+   echo "  Command Syntax: check_linux_swap [-H host] [-c val] [-w val]"
+   echo " "
+   exit 3;
+}
+
+if [[ $# -ne 6 ]]
+then
+  Syntax
+fi
+
+valw=0
+valc=0
+host=""
+
+while [[ $# > 0 ]]
+do
+   par=$1
+   case $par in
+     -c) shift
+         valc=$1;;
+     -w) shift
+         valw=$1;;
+     -H) shift
+         host=$1;;
+     -h) shift
+         Syntax
+         exit;;
+      *) shift;;
+   esac
+done
+
+valc=$(echo "$valc*1.0" | bc)
+valw=$(echo "$valw*1.0" | bc)
+
+output=$(ssh nagios@$host "free")
+totalSwap=$(echo "$output" | grep "Swap" | awk '{print $2}')
+usedSwap=$(echo "$output" | grep "Swap" | awk '{print $3}')
+
+value_inuse=$(echo "($usedSwap / $totalSwap) * 100" | bc -l | cut -c 1-4)
+
+exitCode=0
+status="OK"
+
+if (( $(echo "$value_inuse > $valw" | bc -l) ))
+then
+	exitCode=1
+	status="WARNING"
+fi
+
+if (( $(echo "$value_inuse > $valc" | bc -l) ))
+then
+	exitCode=2
+	status="CRITICAL"
+fi
+
+echo "SWAP $status :: SwapUsed = $value_inuse% | SwapUsed=$value_inuse%;$valw;$valc"
+exit $exitCode

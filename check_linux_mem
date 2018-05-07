@@ -1,0 +1,71 @@
+#!/bin/bash
+
+Syntax()
+{
+   echo " "
+   echo "  Command Syntax: check_linux_mem [-H host] [-c val] [-w val]"
+   echo " "
+   exit 3;
+}
+
+if [[ $# -ne 6 ]]
+then
+  Syntax
+fi
+
+valw=0
+valc=0
+host=""
+
+while [[ $# > 0 ]]
+do
+   par=$1
+   case $par in
+     -c) shift
+         valc=$1;;
+     -w) shift
+         valw=$1;;
+     -H) shift
+         host=$1;;
+     -h) shift
+         Syntax
+         exit;;
+      *) shift;;
+   esac
+done
+
+valc=$(echo "$valc*1.0" | bc)
+valw=$(echo "$valw*1.0" | bc)
+
+
+output=$(ssh nagios@$host "free")
+if [[ $output = *"-/+"* ]]
+then
+	totalMem=$(echo "$output" | grep "Mem" | awk '{print $2}')
+	usedMem=$(echo "$output"| grep "\-\/\+" | awk '{print $3}')
+	value_inuse=$(echo "($usedMem / $totalMem) * 100" | bc -l)
+else
+	totalMem=$(echo "$output" | grep "Mem" | awk '{print $2}')
+	usedMem=$(echo "$output" | grep "Mem" | awk '{print $3}')
+	value_inuse=$(echo "($usedMem / $totalMem) * 100" | bc -l)
+fi
+
+
+status="OK"
+exitCode=0
+
+if (( $(echo "$value_inuse > $valw" | bc -l) ))
+then
+	exitCode=1
+	status="WARNING"
+fi
+
+if (( $(echo "$value_inuse > $valc" | bc -l) ))
+then
+	exitCode=2
+	status="CRITICAL"
+fi
+
+value_inuse=$(echo $value_inuse | cut -c 1-4)
+echo "MEMORY $status :: MemUsed = $value_inuse% | MemUsed=$value_inuse%;$valw;$valc"
+exit $exitCode

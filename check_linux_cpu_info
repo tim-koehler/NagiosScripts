@@ -1,0 +1,9 @@
+#!/bin/bash
+
+rawOutput=$(ssh nagios@$1 "lscpu")
+
+totalCores=$(echo "{$rawOutput}" | grep -m 1 "CPU(s):" | awk '{print $2}')
+sockets=$(echo "{$rawOutput}" | grep "Socket(s):" | awk '{print $2}')
+coresPerSocket=$(echo "{$rawOutput}" | grep "Core(s) per socket:" | awk '{print $4}')
+
+echo "Total Cores: $totalCores // Sockets: $sockets // Cores per socket: $coresPerSocket"
