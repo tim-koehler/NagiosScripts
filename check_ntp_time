@@ -1,0 +1,75 @@
+#!/bin/bash
+
+Usage()
+{
+  echo "Usage: $0 -H host -w warning -c critical (in seconds)"
+}
+
+while getopts ":H:w:c:" opt
+do
+  case ${opt} in
+    H )
+      host=${OPTARG}
+      ;;
+    w )
+      warning=${OPTARG}
+      ;;
+    c )
+      critical=${OPTARG}
+      ;;
+    * )
+      Usage
+      exit 2
+      ;;
+  esac
+done
+shift $((OPTIND-1))
+
+if [ -z "${host}" ] || [ -z "${warning}" ] || [ -z "${critical}" ]
+then
+  Usage
+  exit 2
+fi
+
+if (( $(echo "$warning > $critical" | bc -l) ))
+then
+	echo "Warning threshold cannot be equal or bigger than critical"
+	exit
+fi
+
+ntp_config=`ssh nagios@$host "grep -w ^server /etc/ntp.conf"`
+ntp_servers=`echo $ntp_config | sed -r 's/\b(iburst|server)\b//g'`
+
+for server in $ntp_servers
+do
+  remote=`ssh nagios@$host "/usr/sbin/ntpdate -q $server"`
+  if [ $? -eq 0 ]
+  then
+  	diff=`echo $remote| awk '{print $6}' | cut -d , -f1`
+  	ntp_server=$server
+    break
+  fi
+done
+
+if [ -z "$remote" ]
+then
+   echo "SSH time check failed..."
+   exit 3
+fi
+
+diff=${diff/-/}
+
+if [[ "$diff" > "$critical" ]]
+then
+	echo "CRITICAL: Offset is $diff seconds, to: $ntp_server | Status=2"
+	exit 2
+fi
+
+if [[ "$diff" > "$warning"  ]]
+then
+	echo "WARNING: Offset is $diff seconds, to: $ntp_server | Status=1"
+	exit 1
+fi
+
+echo "OK: In sync with: $ntp_server | Status=0"
+exit 0
