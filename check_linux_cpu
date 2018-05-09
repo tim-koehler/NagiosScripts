@@ -1,0 +1,62 @@
+#!/bin/bash
+
+Syntaxe()
+{
+   echo " "
+   echo "  Command Syntaxe: check_linux_cpu [-H host] [-c val] [-w val] "
+   echo " "
+   exit 3;
+}
+
+if [[ $# -ne 6 ]]
+then
+  Syntaxe
+fi
+
+valw=0
+valc=0
+host=""
+
+while [[ $# > 0 ]]
+do
+   par=$1
+   case $par in
+     -c) shift
+         valc=$1;;
+     -w) shift
+         valw=$1;;
+     -H) shift
+         host=$1;;
+     -h) shift
+         Syntaxe
+         exit;;
+      *) shift;;
+   esac
+done
+
+command="vmstat 1 3 | awk '{ print \$13\" \"\$14\" \"\$15\" \"\$16\" \"\$17 }' | tail -1"
+output=$(ssh nagios@$host "$command")
+us=$(echo $output | cut -d " " -f1 )
+sy=$(echo $output | cut -d " " -f2 )
+id=$(echo $output | cut -d " " -f3 )
+wa=$(echo $output | cut -d " " -f4 )
+pc=$(echo $output | cut -d " " -f5 )
+
+total=$(expr $us + $sy + $wa)
+
+exitCode=0
+status="OK"
+
+if (( $total > $valw ))
+then
+   exitCode=1
+   status="WARNING"
+fi
+if (( $total > $valc ))
+then
+  exitCode=2
+  status="CRITCAL"
+fi
+
+echo "CPU $status : Total unsage $total% | total=$total%;$valw;$valc user=$us% system=$sy% iowait=$wa% idle=$id%"
+exit $exitCode
