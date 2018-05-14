@@ -1,0 +1,45 @@
+#!/bin/bash
+
+Syntax()
+{
+   echo " "
+   echo "  Command Syntax: check_linux_process [-H host] [-p process_name]"
+   echo " "
+   exit 3;
+}
+
+if [[ $# -ne 4 ]]
+then
+  Syntax
+fi
+
+process_name=""
+host=""
+
+while getopts ":H:p:" opt
+do
+  case ${opt} in
+    H )
+      host=${OPTARG}
+      ;;
+    p )
+      process_name=${OPTARG}
+      ;;
+    * )
+      Syntax
+      exit 2
+      ;;
+  esac
+done
+shift $((OPTIND-1))
+
+output=$(ps -ef | grep $process_name | grep -vE "grep|$0" | wc -l)
+
+if [ "$output" -gt "0" ]
+then
+  echo "OK: Process running: $process_name | Staus=1"
+  exit 0
+else
+  echo "CRITICAL: Process not running: $process_name | Status=0"
+  exit 2
+fi
