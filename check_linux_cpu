@@ -58,5 +58,5 @@ then
   status="CRITCAL"
 fi
 
-echo "CPU $status : Total unsage $total% | total=$total%;$valw;$valc user=$us% system=$sy% iowait=$wa% idle=$id%"
+echo "CPU $status : Total usage $total% | total=$total%;$valw;$valc user=$us% system=$sy% iowait=$wa% idle=$id%"
 exit $exitCode
