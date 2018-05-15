@@ -1,0 +1,25 @@
+#!/bin/bash
+
+response=$(ssh nagios@$1 "/usr/bin/uptime" | cut -d',' -f 1 | cut -c 11-)
+if [[ -z $output ]]
+then
+	echo "SSH Error"
+	exit 3
+fi
+
+if [[ $response = *"min"* ]]
+then
+	perfData=$(echo $response | awk '{print $2}')
+elif [[ $response = *"hour"* ]]
+then
+	perfData=$(echo $response | awk '{print $2 * 60}')
+elif [[ $response = *"day"* ]]
+then
+  perfData=$(echo $response | awk '{print $2 * 1440}')
+else
+	hours=$(echo $response | awk '{print $2}' | cut -d':' -f 1)
+	minutes=$(echo $response | awk '{print $2}' | cut -d':' -f 2)
+	perfData=$( bc -l <<<"60*$hours + $minutes" )
+fi
+
+echo "$response | DurationInMinutes=$perfData"
