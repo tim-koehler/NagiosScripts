@@ -36,6 +36,12 @@ done
 
 command="vmstat 1 3 | awk '{ print \$14\" \"\$15\" \"\$16\" \"\$17\" \"\$18 }' | tail -1"
 output=$(ssh nagios@$host "$command")
+if [[ -z $output ]]
+then
+	echo "SSH Error"
+	exit 3
+fi
+
 us=$(echo $output | cut -d " " -f1 )
 sy=$(echo $output | cut -d " " -f2 )
 id=$(echo $output | cut -d " " -f3 )

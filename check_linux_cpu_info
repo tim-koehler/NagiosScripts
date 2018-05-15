@@ -1,6 +1,11 @@
 #!/bin/bash
 
 rawOutput=$(ssh nagios@$1 "lscpu")
+if [[ -z $rawOutput ]]
+then
+	echo "SSH Error"
+	exit 3
+fi
 
 totalCores=$(echo "{$rawOutput}" | grep -m 1 "CPU(s):" | awk '{print $2}')
 sockets=$(echo "{$rawOutput}" | grep "Socket(s):" | awk '{print $2}')

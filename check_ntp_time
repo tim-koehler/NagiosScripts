@@ -38,6 +38,12 @@ then
 fi
 
 ntp_config=`ssh nagios@$host "grep -w ^server /etc/ntp.conf"`
+if [[ -z $ntp_config ]]
+then
+	echo "SSH Error"
+	exit 3
+fi
+
 ntp_servers=`echo $ntp_config | sed -r 's/\b(iburst|server)\b//g'`
 
 for server in $ntp_servers

@@ -38,6 +38,12 @@ valc=$(echo "$valc*1.0" | bc)
 valw=$(echo "$valw*1.0" | bc)
 
 output=$(ssh nagios@$host "free")
+if [[ -z $output ]]
+then
+	echo "SSH Error"
+	exit 3
+fi
+
 totalSwap=$(echo "$output" | grep "Swap" | awk '{print $2}')
 usedSwap=$(echo "$output" | grep "Swap" | awk '{print $3}')
 

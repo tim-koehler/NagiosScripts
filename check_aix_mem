@@ -35,6 +35,12 @@ do
 done
 
 output=$(ssh nagios@$host "vmstat -v")
+if [[ -z $output ]]
+then
+	echo "SSH Error"
+	exit 3
+fi
+
 value_numperm=$(echo "$output" | grep numperm | awk '{print $1}'| sed s/\s+//g)
 value_inuse=$(echo "$output" | grep "percentage of memory" | sed s/\s+//g | awk '{print $1}')
 

@@ -39,6 +39,12 @@ valw=$(echo "$valw*1.0" | bc)
 
 
 output=$(ssh nagios@$host "free")
+if [[ -z $output ]]
+then
+	echo "SSH Error"
+	exit 3
+fi
+
 if [[ $output = *"-/+"* ]]
 then
 	totalMem=$(echo "$output" | grep "Mem" | awk '{print $2}')

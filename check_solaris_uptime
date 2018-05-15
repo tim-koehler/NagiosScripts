@@ -1,7 +1,7 @@
 #!/bin/bash
 
 response=$(ssh nagios@$1 "/usr/bin/uptime" | cut -d',' -f 1 | cut -c 11-)
-if [[ -z $output ]]
+if [[ -z $response ]]
 then
 	echo "SSH Error"
 	exit 3
