@@ -33,7 +33,13 @@ do
 done
 shift $((OPTIND-1))
 
-output=$(ps -ef | grep $process_name | grep -vE "grep|$0" | wc -l)
+command="ps -ef | grep $process_name | grep -vE "grep|$0" | wc -l"
+output=$(ssh nagios@$host "$command")
+if [[ -z $output ]]
+then
+	echo "SSH Error"
+	exit 3
+fi
 
 if [ "$output" -gt "0" ]
 then
