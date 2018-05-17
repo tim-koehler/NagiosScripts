@@ -1,14 +1,20 @@
 #!/bin/bash
 
-rawOutput=$(ssh nagios@$1 "lscpu")
+if [[ -z $1 ]]
+then
+	echo "Host argument missing"
+	exit 3
+fi
+
+rawOutput=$(ssh nagios@$1 "cat /proc/cpuinfo")
 if [[ -z $rawOutput ]]
 then
 	echo "SSH Error"
 	exit 3
 fi
 
-totalCores=$(echo "{$rawOutput}" | grep -m 1 "CPU(s):" | awk '{print $2}')
-sockets=$(echo "{$rawOutput}" | grep "Socket(s):" | awk '{print $2}')
-coresPerSocket=$(echo "{$rawOutput}" | grep "Core(s) per socket:" | awk '{print $4}')
+sockets=$(echo "{$rawOutput}" | grep "physical id" | sort -u | wc -l)
+coresPerSocket=$(echo "{$rawOutput}" | grep "cpu cores" | sort -u | cut -d':' -f 2)
+totalCores=$(echo "$(($sockets * $coresPerSocket))")
 
 echo "Total Cores: $totalCores // Sockets: $sockets // Cores per socket: $coresPerSocket"
