@@ -14,7 +14,17 @@ then
 fi
 
 sockets=$(echo "{$rawOutput}" | grep "physical id" | sort -u | wc -l)
+if [[ $sockets -eq "0" ]]
+then
+	sockets=1
+fi
+
 coresPerSocket=$(echo "{$rawOutput}" | grep "cpu cores" | sort -u | cut -d':' -f 2)
+if [[ $coresPerSocket -eq "0" ]]
+then
+	coresPerSocket=1
+fi
+
 totalCores=$(echo "$(($sockets * $coresPerSocket))")
 
 cpuName=$(echo "{$rawOutput}" | grep -m 1 "model name" | cut -d':' -f 2)
