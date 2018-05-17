@@ -17,4 +17,6 @@ sockets=$(echo "{$rawOutput}" | grep "physical id" | sort -u | wc -l)
 coresPerSocket=$(echo "{$rawOutput}" | grep "cpu cores" | sort -u | cut -d':' -f 2)
 totalCores=$(echo "$(($sockets * $coresPerSocket))")
 
-echo "Total Cores: $totalCores // Sockets: $sockets // Cores per socket: $coresPerSocket"
+cpuName=$(echo "{$rawOutput}" | grep -m 1 "model name" | cut -d':' -f 2)
+
+echo "$cpuName // Total Cores: $totalCores // Sockets: $sockets // Cores per socket: $coresPerSocket"
