@@ -59,7 +59,7 @@ done
 
 if [ -z "$remote" ]
 then
-   echo "SSH time check failed..."
+   echo "Check failed. Issue with ntpdate"
    exit 3
 fi
 
