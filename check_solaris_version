@@ -1,0 +1,11 @@
+#!/bin/bash
+
+value=$(ssh nagios@$1 "cat /etc/release | head -n 1")
+if [[ -z $value ]]
+then
+	echo "SSH Error"
+	exit 3
+fi
+
+echo $value
+exit 0
