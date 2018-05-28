@@ -1,0 +1,40 @@
+#!/bin/bash
+
+response=$(ssh nagios@$1 "/usr/sbin/zpool list -o name,health")
+if [[ -z $response ]]
+then
+	echo "SSH Error"
+	exit 3
+fi
+
+warnings=0
+criticals=0
+flag_noPools=0
+
+while read -r line
+do
+    if [[ $line = *"UNAVAIL"* ]]
+	then
+		criticals=$((criticals + 1))
+	elif [[ $line = *"DEGRADED"* ]]
+	then
+		warnings=$((warnings + 1))
+	elif [[ $line = *"no pools available"* ]]
+	then
+		echo "OK: No pools available | ExitCode=0"
+		exit 0
+	fi
+done < <(echo "$response")
+
+if [[ $criticals -gt 0 ]]
+then
+	echo "CRITICAL: $criticals zPool(s) critical | ExitCode=2"
+	exit 2
+elif [[ $warnings -gt 0 ]]
+then
+	echo "CRITICAL: $criticals zPool(s) warning | ExitCode=1"
+	exit 1
+fi
+
+echo "OK: All zPools online | ExitCode=0"
+exit 0
