@@ -1,17 +1,16 @@
 #!/bin/bash
 
 value=$(ssh nagios@$1 "cat /etc/*-release")
-if [[ -z $value ]]
-then
-	echo "SSH Error"
+if [[ -z $value ]]; then
+	echo "SSH Error | ExitCode=3"
 	exit 3
 fi
 
-if [[ $value = *"release"* ]]; then
-  value=$(echo "$value" | grep release | tail -n 1)
-  echo $value
+if [[ $value == *"release"* ]]; then
+	value=$(echo "$value" | grep release | tail -n 1)
+	echo "$value | ExitCode=1"
 fi
-if [[ $value = *"PRETTY_NAME="* ]]; then
-  value=$(echo "$value" | grep PRETTY_NAME | tail -n 1 | cut -d"\"" -f2)
-  echo $value
+if [[ $value == *"PRETTY_NAME="* ]]; then
+	value=$(echo "$value" | grep PRETTY_NAME | tail -n 1 | cut -d"\"" -f2)
+	echo "$value | ExitCode=1"
 fi
