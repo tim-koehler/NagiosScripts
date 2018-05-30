@@ -1,50 +1,54 @@
 #!/bin/bash
 
-Syntax()
-{
-   echo " "
-   echo "  Command Syntax: check_solaris_mem [-H host] [-c val] [-w val]"
-   echo " "
-   exit 3;
+Syntax() {
+	echo " "
+	echo "  Command Syntax: check_solaris_mem [-H host] [-c val] [-w val]"
+	echo " "
+	exit 3
 }
 
-if [[ $# == 0 ]]
-then
-  Syntax
+if [[ $# == 0 ]]; then
+	Syntax
 fi
 
 valw=0
 valc=0
 host=""
 
-while [[ $# > 0 ]]
-do
-   par=$1
-   case $par in
-     -c) shift
-         valc=$1;;
-     -w) shift
-         valw=$1;;
-     -H) shift
-         host=$1;;
-     -h) shift
-         Syntax
-         exit;;
-      *) shift;;
-   esac
+while
+	[[ $# > 0 ]]; do
+	par=$1
+	case $par in
+	-c)
+		shift
+		valc=$1
+		;;
+	-w)
+		shift
+		valw=$1
+		;;
+	-H)
+		shift
+		host=$1
+		;;
+	-h)
+		shift
+		Syntax
+		exit
+		;;
+	*) shift ;;
+	esac
 done
 
 output=$(ssh nagios@$host "/usr/bin/vmstat 1 3 | /usr/bin/tail -1")
-if [[ -z $output ]]
-then
+if [[ -z $output ]]; then
 	echo "SSH Error"
 	exit 3
 fi
 freeMemory=$(echo "$output" | awk '{print ($5 / 1024)}' | cut -d'.' -f 1)
 
 output=$(ssh nagios@$host "/usr/sbin/prtconf")
-if [[ -z $output ]]
-then
+if [[ -z $output ]]; then
 	echo "SSH Error"
 	exit 3
 fi
@@ -55,15 +59,13 @@ usedMemory=$(echo "scale=2; 100 - (($freeMemory / $totalMemory) * 100)" | bc -l)
 ok=0
 status="OK"
 
-if (( $(echo "$usedMemory > $valw" | bc -l) ))
-then
-		ok=1
-		status="WARNING"
+if (($(echo "$usedMemory > $valw" | bc -l))); then
+	ok=1
+	status="WARNING"
 fi
-if (( $(echo "$usedMemory > $valc" | bc -l) ))
-then
-		ok=2
-		status="CRITICAL"
+if (($(echo "$usedMemory > $valc" | bc -l))); then
+	ok=2
+	status="CRITICAL"
 fi
 
 echo "MEMORY $status :: MemUsed = $usedMemory% | MemUsed=$usedMemory%;$valw;$valc"
