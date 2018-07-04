@@ -1,0 +1,59 @@
+#!/bin/bash
+
+Syntax()
+{
+   echo " "
+   echo "  Command Syntax: check_linux_proc_count [-H host] [-c val] [-w val]"
+   echo " "
+   exit 3;
+}
+
+if [[ $# -ne 6 ]]
+then
+  Syntax
+fi
+
+valw=0
+valc=0
+host=""
+
+while [[ $# > 0 ]]
+do
+   par=$1
+   case $par in
+     -c) shift
+         valc=$1;;
+     -w) shift
+         valw=$1;;
+     -H) shift
+         host=$1;;
+     -h) shift
+         Syntax
+         exit;;
+      *) shift;;
+   esac
+done
+
+value_inuse=$(ssh nagios@$host "ps --no-headers -ef | wc -l")
+if [[ -z $value_inuse ]]; then
+	echo "SSH Error | ExitCode=3"
+	exit 3
+fi
+
+exitCode=0
+status="OK"
+
+if (( $(echo "$value_inuse > $valw" | bc -l) ))
+then
+	exitCode=1
+	status="WARNING"
+fi
+
+if (( $(echo "$value_inuse > $valc" | bc -l) ))
+then
+	exitCode=2
+	status="CRITICAL"
+fi
+
+echo "ProcCount $status :: Running procs = $value_inuse | Procs=$value_inuse;$valw;$valc"
+exit $exitCode
