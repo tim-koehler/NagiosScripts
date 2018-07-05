@@ -1,0 +1,80 @@
+#!/bin/bash
+
+Syntax()
+{
+   echo " "
+   echo "  Command Syntax: check_linux_net_usage [-H host] [-c val] [-w val]"
+   echo " "
+   exit 3;
+}
+
+if [[ $# -ne 6 ]]
+then
+  Syntax
+fi
+
+valw=0
+valc=0
+host=""
+
+while [[ $# > 0 ]]
+do
+   par=$1
+   case $par in
+     -c) shift
+         valc=$1;;
+     -w) shift
+         valw=$1;;
+     -H) shift
+         host=$1;;
+     -h) shift
+         Syntax
+         exit;;
+      *) shift;;
+   esac
+done
+
+interface=$(ssh nagios@$host 'if test -d /sys/class/net/eth0/; then echo "exist"; fi')
+if [[ -z $interface ]]; then
+	echo "No 'eth0' interface! | ExitCode=3"
+	exit 3
+fi
+
+bashSnippet='rxBytes1=$(cat /sys/class/net/eth0/statistics/rx_bytes);\
+             txBytes1=$(cat /sys/class/net/eth0/statistics/tx_bytes);\
+             sleep 1s;\
+             rxBytes2=$(cat /sys/class/net/eth0/statistics/rx_bytes);\
+             txBytes2=$(cat /sys/class/net/eth0/statistics/tx_bytes);\
+             rxPerSecond=$(( (rxBytes2 - rxBytes1) / 1024));\
+             txPerSecond=$(( (txBytes2 - txBytes1) / 1024));\
+             echo "$rxPerSecond $txPerSecond";'
+
+rxAndtxOutput=$(ssh nagios@$host "$bashSnippet")
+if [[ -z $rxAndtxOutput ]]; then
+	echo "SSH Error | ExitCode=3"
+	exit 3
+fi
+
+rxInKiloBytes=$(echo "$rxAndtxOutput" | awk '{ print $1 }')
+txInKiloBytes=$(echo "$rxAndtxOutput" | awk '{ print $2 }')
+
+exitCode=0
+status="OK"
+
+echo "$rxInKiloBytes"
+echo "$txInKiloBytes"
+
+if (( $(echo "$rxInKiloBytes > $valw" | bc -l) )) || (( $(echo "$txInKiloBytes > $valw" | bc -l) ))
+then
+	exitCode=1
+	status="WARNING"
+fi
+
+if (( $(echo "$rxInKiloBytes > $valc" | bc -l) )) || (( $(echo "$txInKiloBytes > $valc" | bc -l) ))
+then
+	exitCode=2
+	status="CRITICAL"
+fi
+
+echo "NetUsage $status :: RX = $rxInKiloBytes kB/s / TX = $txInKiloBytes kB/s | RX=$rxInKiloBytes;TX=$txInKiloBytes;$valw;$valc"
+exit $exitCode
