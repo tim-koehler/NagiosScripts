@@ -40,13 +40,26 @@ if [[ -z $interface ]]; then
 	exit 3
 fi
 
-bashSnippet='rxBytes1=$(cat /sys/class/net/eth0/statistics/rx_bytes);\
-             txBytes1=$(cat /sys/class/net/eth0/statistics/tx_bytes);\
-             sleep 1s;\
-             rxBytes2=$(cat /sys/class/net/eth0/statistics/rx_bytes);\
-             txBytes2=$(cat /sys/class/net/eth0/statistics/tx_bytes);\
-             rxPerSecond=$(( (rxBytes2 - rxBytes1) / 1024));\
-             txPerSecond=$(( (txBytes2 - txBytes1) / 1024));\
+bashSnippet='
+             rxBytes1=0;\
+             for bytes in `cat /sys/class/net/*/statistics/rx_bytes`; do\
+             rxBytes1=$((rxBytes1 + bytes));\
+             done;\
+             txBytes1=0;\
+             for bytes in `cat /sys/class/net/*/statistics/tx_bytes`; do\
+             txBytes1=$((txBytes1 + bytes));\
+             done;\
+             sleep 5s;\
+             rxBytes2=0;\
+             for bytes in `cat /sys/class/net/*/statistics/rx_bytes`; do\
+             rxBytes2=$((rxBytes2 + bytes));\
+             done;\
+             txBytes2=0;\
+             for bytes in `cat /sys/class/net/*/statistics/tx_bytes`; do\
+             txBytes2=$((txBytes2 + bytes));\
+             done;\
+             rxPerSecond=$(( (rxBytes2 - rxBytes1) / 5 ));\
+             txPerSecond=$(( (txBytes2 - txBytes1) / 5 ));\
              echo "$rxPerSecond $txPerSecond";'
 
 rxAndtxOutput=$(ssh nagios@$host "$bashSnippet")
@@ -55,26 +68,27 @@ if [[ -z $rxAndtxOutput ]]; then
 	exit 3
 fi
 
-rxInKiloBytes=$(echo "$rxAndtxOutput" | awk '{ print $1 }')
-txInKiloBytes=$(echo "$rxAndtxOutput" | awk '{ print $2 }')
+rxInBytes=$(echo "$rxAndtxOutput" | awk '{ print $1 }')
+rxInMegaBits=$(echo "($rxInBytes * 8 ) / 1024) / 1024)" | bc -l )
+echo "$rxInMegaBits"
+
+txInBytes=$(echo "$rxAndtxOutput" | awk '{ print $2 }')
+txInMegaBits=$(echo "($txInBytes * 8 ) / 1024) / 1024)" | bc -l )
 
 exitCode=0
 status="OK"
 
-echo "$rxInKiloBytes"
-echo "$txInKiloBytes"
-
-if (( $(echo "$rxInKiloBytes > $valw" | bc -l) )) || (( $(echo "$txInKiloBytes > $valw" | bc -l) ))
+if (( $(echo "$rxInMegaBits > $valw" | bc -l) )) || (( $(echo "$txInMegaBits > $valw" | bc -l) ))
 then
 	exitCode=1
 	status="WARNING"
 fi
 
-if (( $(echo "$rxInKiloBytes > $valc" | bc -l) )) || (( $(echo "$txInKiloBytes > $valc" | bc -l) ))
+if (( $(echo "$rxInMegaBits > $valc" | bc -l) )) || (( $(echo "$txInMegaBits > $valc" | bc -l) ))
 then
 	exitCode=2
 	status="CRITICAL"
 fi
 
-echo "NetUsage $status :: RX = $rxInKiloBytes kB/s / TX = $txInKiloBytes kB/s | RX=$rxInKiloBytes;TX=$txInKiloBytes;$valw;$valc"
+echo "NetUsage $status :: RX = $rxInMegaBits Mbits/s / TX = $txInMegaBits Mbits/s | RX=$rxInMegaBits;TX=$txInMegaBits;$valw;$valc"
 exit $exitCode
