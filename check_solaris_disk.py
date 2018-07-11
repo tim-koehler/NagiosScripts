@@ -1,3 +1,5 @@
+#!/usr/local/bin/python3.6
+
 import sys
 import argparse
 import subprocess
@@ -66,7 +68,7 @@ def FetchOutputFromRemoteHost(host):
 def GetDriveExcludesFromJson(host):
 
     try:
-        with open('./SolarisDiskCheckConfig/SolarisDiskCheckConfig.json') as f:
+        with open('/usr/local/nagios/libexec/SolarisDiskCheckConfig/SolarisDiskCheckConfig.json') as f:
             data = json.load(f)
     except Exception as e:
         print("Config file not found")
