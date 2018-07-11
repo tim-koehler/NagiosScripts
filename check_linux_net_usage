@@ -34,12 +34,6 @@ do
    esac
 done
 
-interface=$(ssh nagios@$host 'if test -d /sys/class/net/eth0/; then echo "exist"; fi')
-if [[ -z $interface ]]; then
-	echo "No 'eth0' interface! | ExitCode=3"
-	exit 3
-fi
-
 bashSnippet='
              rxBytes1=0;\
              for bytes in `cat /sys/class/net/*/statistics/rx_bytes`; do\
@@ -69,23 +63,24 @@ if [[ -z $rxAndtxOutput ]]; then
 fi
 
 rxInBytes=$(echo "$rxAndtxOutput" | awk '{ print $1 }')
-rxInMegaBits=$(echo "($rxInBytes * 8 ) / 1024) / 1024)" | bc -l )
-echo "$rxInMegaBits"
+rxInKiloBits=$(echo "(($rxInBytes * 8 ) / 1024)" | bc -l )
+rxInMegaBits=$(echo "(($rxInKiloBits) / 1024)" | bc -l | awk '{printf "%.2f", $0}')
 
 txInBytes=$(echo "$rxAndtxOutput" | awk '{ print $2 }')
-txInMegaBits=$(echo "($txInBytes * 8 ) / 1024) / 1024)" | bc -l )
+txInKiloBits=$(echo "(($txInBytes * 8 ) / 1024)" | bc -l )
+txInMegaBits=$(echo "(($txInKiloBits) / 1024)" | bc -l | awk '{printf "%.2f", $0}')
 
 exitCode=0
 status="OK"
 
-if (( $(echo "$rxInMegaBits > $valw" | bc -l) )) || (( $(echo "$txInMegaBits > $valw" | bc -l) ))
-then
+#if (( $(echo "$rxInMegaBits > $valw" | bc -l) )) || (( $(echo "$txInMegaBits > $valw" | bc -l) ))
+if [ $(echo "$rxInMegaBits > $valw" | bc) -eq 1  ] || [ $(echo "$txInMegaBits > $valw" | bc) -eq 1 ]; then
 	exitCode=1
 	status="WARNING"
 fi
 
-if (( $(echo "$rxInMegaBits > $valc" | bc -l) )) || (( $(echo "$txInMegaBits > $valc" | bc -l) ))
-then
+#if (( $(echo "$rxInMegaBits > $valc" | bc -l) )) || (( $(echo "$txInMegaBits > $valc" | bc -l) ))
+if [ $(echo "$rxInMegaBits > $valc" | bc -l) -eq 1 ] || [ $(echo "$txInMegaBits > $valc" | bc -l) -eq 1 ]; then
 	exitCode=2
 	status="CRITICAL"
 fi
