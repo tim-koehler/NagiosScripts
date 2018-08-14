@@ -1,0 +1,69 @@
+#!/bin/bash
+
+Syntax()
+{
+   echo " "
+   echo "  Command Syntax: check_linux_openFiles [-H host] [-c val] [-w val]"
+   echo " "
+   exit 3;
+}
+
+if [[ $# -ne 6 ]]
+then
+  Syntax
+fi
+
+valw=0
+valc=0
+host=""
+
+while [[ $# > 0 ]]
+do
+   par=$1
+   case $par in
+     -c) shift
+         valc=$1;;
+     -w) shift
+         valw=$1;;
+     -H) shift
+         host=$1;;
+     -h) shift
+         Syntax
+         exit;;
+      *) shift;;
+   esac
+done
+
+maxHandels=$(ssh nagios@$host "cat /proc/sys/fs/file-max")
+if [[ -z $maxHandels ]]
+then
+	echo "SSH Error"
+	exit 3
+fi
+
+usedHandels=$(ssh nagios@$host "cat /proc/sys/fs/file-nr | cut -d$'\t' -f 1")
+if [[ -z $usedHandels ]]
+then
+	echo "SSH Error"
+	exit 3
+fi
+
+percentageUsed=$(echo "$usedHandels $maxHandels" | awk '{printf "%.2f", (($1 / $2) * 100)}')
+
+exitCode=0
+status="OK"
+
+if (( $(echo "$percentageUsed > $valw" | bc -l) ))
+then
+	exitCode=1
+	status="WARNING"
+fi
+
+if (( $(echo "$percentageUsed > $valc" | bc -l) ))
+then
+	exitCode=2
+	status="CRITICAL"
+fi
+
+echo "OpenFiles $status :: Percentage of file handels used:  $percentageUsed% | OpenFiles=$percentageUsed%"
+
