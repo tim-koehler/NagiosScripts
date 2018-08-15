@@ -34,21 +34,21 @@ do
    esac
 done
 
-maxHandels=$(ssh nagios@$host "cat /proc/sys/fs/file-max")
-if [[ -z $maxHandels ]]
+maxHandles=$(ssh nagios@$host "cat /proc/sys/fs/file-max")
+if [[ -z $maxHandles ]]
 then
 	echo "SSH Error"
 	exit 3
 fi
 
-usedHandels=$(ssh nagios@$host "cat /proc/sys/fs/file-nr | cut -d$'\t' -f 1")
-if [[ -z $usedHandels ]]
+usedHandles=$(ssh nagios@$host "cat /proc/sys/fs/file-nr | cut -d$'\t' -f 1")
+if [[ -z $usedHandles ]]
 then
 	echo "SSH Error"
 	exit 3
 fi
 
-percentageUsed=$(echo "$usedHandels $maxHandels" | awk '{printf "%.2f", (($1 / $2) * 100)}')
+percentageUsed=$(echo "$usedHandles $maxHandles" | awk '{printf "%.2f", (($1 / $2) * 100)}')
 
 exitCode=0
 status="OK"
@@ -65,5 +65,5 @@ then
 	status="CRITICAL"
 fi
 
-echo "OpenFiles $status :: Percentage of file handels used:  $percentageUsed% | OpenFiles=$percentageUsed%"
+echo "OpenFiles $status :: Percentage of file handles used:  $percentageUsed% | OpenFiles=$percentageUsed%"
 
