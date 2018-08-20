@@ -1,0 +1,76 @@
+#!/bin/bash
+
+Syntax()
+{
+   echo " "
+   echo "  Command Syntax: check_linux_average_usage [-H host] [-c val] [-w val]"
+   echo " "
+   exit 3;
+}
+
+if [[ $# -ne 6 ]]
+then
+  Syntax
+fi
+
+valw=0
+valc=0
+host=""
+
+while [[ $# > 0 ]]
+do
+   par=$1
+   case $par in
+     -c) shift
+         valc=$1;;
+     -w) shift
+         valw=$1;;
+     -H) shift
+         host=$1;;
+     -h) shift
+         Syntax
+         exit;;
+      *) shift;;
+   esac
+done
+
+valc=$(echo "$valc" | awk '{printf "%.2f", ($1 / 100) }')
+valw=$(echo "$valw" | awk '{printf "%.2f", ($1 / 100) }')
+
+response=$(ssh nagios@$host "/usr/bin/uptime")
+if [[ -z $response ]]
+then
+	echo "SSH Error"
+	exit 3
+fi
+
+cores=$(ssh nagios@$host "nproc")
+if [[ -z $response ]]
+then
+	echo "SSH Error"
+	exit 3
+fi
+
+response=${response:(-16)}
+
+avgFifteen=$(echo $response | awk '{print $3}')
+
+avgFifteen=$(echo "$avgFifteen $cores" | awk '{printf "%.2f", $1 / $2}')
+
+exitCode=0
+status="OK"
+
+if (( $(echo "$avgFifteen > $valw" | bc -l) ))
+then
+	exitCode=1
+	status="WARNING"
+fi
+
+if (( $(echo "$avgFifteen > $valc" | bc -l) ))
+then
+	exitCode=2
+	status="CRITICAL"
+fi
+
+echo "AverageUsage $status :: Usage = $avgFifteen | AverageUsage=$avgFifteen;$valw;$valc"
+exit $exitCode
