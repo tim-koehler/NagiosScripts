@@ -1,0 +1,100 @@
+#!/bin/bash
+
+Syntax() {
+	echo " "
+	echo "  Command Syntax: check_linux_disk [-H host] [-c val] [-w val]"
+	echo " "
+	exit 3
+}
+
+if [[ $# -ne 6 ]]; then
+	Syntax
+fi
+
+while
+	[[ $# > 0 ]]
+do
+	par=$1
+	case $par in
+	-c)
+		shift
+		valc=$1
+		;;
+	-w)
+		shift
+		valw=$1
+		;;
+	-H)
+		shift
+		host=$1
+		;;
+	-h)
+		shift
+		Syntax
+		exit
+		;;
+	*) shift ;;
+	esac
+done
+
+valc=$(echo "$valc*1.0" | bc)
+valw=$(echo "$valw*1.0" | bc)
+
+response=$(ssh nagios@$host "df -Phl 2> /dev/null")
+if [[ -z $response ]]; then
+	echo "SSH Error"
+	exit 3
+fi
+
+response=$(echo "$response" | tail -n +2)
+
+rootFileSystemUsed=$(echo "$response" | head -n 1 | awk '{print $5}')
+
+
+exitCode=0
+status="OK"
+
+critFS=""
+warnFS=""
+
+numCritFS=0
+numWarnFS=0
+
+while read -r line; do
+
+    uncutPercentageUsed=$(echo "$line" | awk '{print $5}')
+	percentageUsed=${uncutPercentageUsed%?}
+
+	if (($(echo "$percentageUsed > $valc" | bc -l))); then
+		FS=$(echo "$line" | awk '{print $6}')
+		critFS=$(echo "$critFS $FS")
+		numCritFS=$((numCritFS+1))
+	elif (($(echo "$percentageUsed > $valw" | bc -l))); then
+		FS=$(echo "$line" | awk '{print $6}')
+		warnFS=$(echo "$warnFS $FS")
+		numWarnFS=$((numWarnFS+1))
+	fi
+done <<< "$response"
+
+if (($numWarnFS > 0)); then
+	exitCode=1
+	status="WARNING"
+fi
+
+if (($numCritFS > 0)); then 
+	exitCode=2
+	status="CRITICAL"
+fi
+
+
+echo "FileSystem $status :: FileSystemsCritical = $numCritFS / FileSystemsWarning =  $numWarnFS | RootFileSystemUsed=$rootFileSystemUsed"
+echo ""
+for mp in $warnFS; do
+    echo "Warning at Mountpoint: $mp"
+done
+echo ""
+for mp in $critFS; do
+    echo "Critical at Mountpoint: $mp"
+done
+
+exit $exitCode
