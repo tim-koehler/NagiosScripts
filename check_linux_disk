@@ -94,7 +94,7 @@ for mp in $warnFS; do
 done
 echo ""
 for mp in $critFS; do
-    echo "Critical at Mountpoint: $mp = $valc%"
+    echo "Critical at Mountpoint: $mp > $valc%"
 done
 
 exit $exitCode
