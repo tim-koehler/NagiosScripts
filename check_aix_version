@@ -1,0 +1,10 @@
+#!/bin/bash
+
+value=$(ssh nagios@$1 "/usr/bin/oslevel")
+if [[ -z $value ]]; then
+	echo "SSH Error | ExitCode=3"
+	exit 3
+fi
+
+echo "Version: $value | Version=$value"
+exit 0
