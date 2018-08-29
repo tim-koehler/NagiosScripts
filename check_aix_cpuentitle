@@ -45,6 +45,8 @@ cpuent=$(echo "$output" | grep "System configuration" | awk '{print $9}' | awk -
 physicalused=$(echo "$output" | tail -1 | awk '{print $5}')
 pctused=$(echo "$output" | tail -1 | awk '{print $6}')
 
+pctused=$(echo $pctused | cut -d'.' -f1)
+
 exitCode=0
 status="OK"
 
