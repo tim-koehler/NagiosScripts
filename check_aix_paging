@@ -1,0 +1,61 @@
+#!/bin/bash
+
+Syntaxe()
+{
+   echo " "
+   echo "  Command Syntaxe: check_aix_paging [-H host] [-c val] [-w val] "
+   echo " "
+   exit 3;
+}
+
+if [[ $# -ne 6 ]]
+then
+  Syntaxe
+fi
+
+valw=0
+valc=0
+host=""
+
+while [[ $# > 0 ]]
+do
+   par=$1
+   case $par in
+     -c) shift
+         valc=$1;;
+     -w) shift
+         valw=$1;;
+     -H) shift
+         host=$1;;
+     -h) shift
+         Syntaxe
+         exit;;
+      *) shift;;
+   esac
+done
+
+output=$(ssh nagios@$host ""lsps -s | tail -1 | awk '{print $2}' | cut -d'%' -f1"")
+if [[ -z $output ]]
+then
+	echo "SSH Error"
+	exit 3
+fi
+
+exitCode=0
+status="OK"
+
+echo "$output"
+
+if (( $output > $valw ))
+then
+   exitCode=1
+   status="WARNING"
+fi
+if (( $output > $valc ))
+then
+  exitCode=2
+  status="CRITCAL"
+fi
+
+echo "$status :: PageSpaceUsed=$output"%" | PageSpaceUsed=$output"%""
+exit $exitCode
