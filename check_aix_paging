@@ -44,8 +44,6 @@ fi
 exitCode=0
 status="OK"
 
-echo "$output"
-
 if (( $output > $valw ))
 then
    exitCode=1
