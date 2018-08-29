@@ -1,0 +1,63 @@
+#!/bin/bash
+
+Syntaxe()
+{
+   echo " "
+   echo "  Command Syntaxe: check_aix_cpuentitle [-H host] [-c val] [-w val] "
+   echo " "
+   exit 3;
+}
+
+if [[ $# -ne 6 ]]
+then
+  Syntaxe
+fi
+
+valw=0
+valc=0
+host=""
+
+while [[ $# > 0 ]]
+do
+   par=$1
+   case $par in
+     -c) shift
+         valc=$1;;
+     -w) shift
+         valw=$1;;
+     -H) shift
+         host=$1;;
+     -h) shift
+         Syntaxe
+         exit;;
+      *) shift;;
+   esac
+done
+
+output=$(ssh nagios@$host "lparstat 5 1")
+if [[ -z $output ]]
+then
+	echo "SSH Error"
+	exit 3
+fi
+
+cpuent=$(echo "$output" | grep "System configuration" | awk '{print $9}' | awk -F= '{print $2}')
+physicalused=$(echo "$output" | tail -1 | awk '{print $5}')
+pctused=$(echo "$output" | tail -1 | awk '{print $6}')
+
+exitCode=0
+status="OK"
+
+if (( $pctused > $valw ))
+then
+   exitCode=1
+   status="WARNING"
+fi
+if (( $pctused > $valc ))
+then
+  exitCode=2
+  status="CRITCAL"
+fi
+
+echo "$status :: pctused=$pctused"%" | entitled=$cpuent usedcpu=$physicalused pctused=$pctused"%""
+exit $exitCode
