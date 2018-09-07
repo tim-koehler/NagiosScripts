@@ -37,11 +37,15 @@ then
 	exit
 fi
 
-ntp_config=`ssh nagios@$host "grep -w ^server /etc/ntp.conf"`
+ntp_config=`ssh nagios@$host "grep -w ^server /etc/ntp.conf 2> /dev/null"`
 if [[ -z $ntp_config ]]
 then
-	echo "SSH or ntp.conf error"
-	exit 3
+	ntp_config=`ssh nagios@$host "grep -w ^server /etc/chrony.conf 2>/dev/null"`
+	if [[ -z $ntp_config ]]
+	then
+		echo "SSH/ntp.conf/chrony.conf error"
+		exit 3
+	fi
 fi
 
 ntp_servers=`echo $ntp_config | sed -r 's/\b(iburst|server)\b//g'`
